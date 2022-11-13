@@ -9,7 +9,7 @@
 	required 값에 따라 반드시 필요한 속성일 수도, 없어도 일단 실행은 되는 속성일 수도 있음-->
     <uses-feature
         android:name="android.hardware.camera"
-        android:required="false" />
+        android:required="true" />
 
     <!--갤러리 권한-->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>

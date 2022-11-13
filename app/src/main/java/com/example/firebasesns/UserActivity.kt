@@ -1,19 +1,24 @@
 package com.example.firebasesns
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentUris
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
+import android.text.TextUtils
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.example.firebasesns.databinding.ActivityUserBinding
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.ktx.auth
@@ -23,13 +28,17 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
-
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class UserActivity : AppCompatActivity() {
     lateinit var storage: FirebaseStorage
     lateinit var binding: ActivityUserBinding
     private val db: FirebaseFirestore = Firebase.firestore
+    private var fileAbsolutePath: String? = null
     val docUserRef = db.collection("user").document("${Firebase.auth.currentUser?.uid}")
     val docPostRef = db.collection("post").document("${Firebase.auth.currentUser?.uid}")
     val REQUEST_IMAGE_CAPTURE = 1
@@ -37,10 +46,27 @@ class UserActivity : AppCompatActivity() {
     companion object {
         const val REQUEST_CODE = 1
         const val REQ_GALLERY = 1
+        const val REQ_PERMISSION_CAMERA = 1
+        const val REQ_CAMERA = 1
     }
 
     // 갤러리에서 이미지 선택결과를 받고 파일 업로드
     private val imageResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ){ result ->
+        if(result.resultCode == RESULT_OK){
+            val imageURI = result.data?.data
+            imageURI?.let{
+
+                val imageFile = getRealPathFromURI(it)
+                val imageName = getRealPathFromNAME(it)
+                uploadFile(imageFile, imageName)
+            }
+        }
+    }
+
+    // 기본 사진앱에서 이미지 선택결과를 받고 파일 업로드
+    private val photoResult = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ){ result ->
         if(result.resultCode == RESULT_OK){
@@ -115,7 +141,12 @@ class UserActivity : AppCompatActivity() {
 
         // 업로드 버튼
         binding.buttonUpload.setOnClickListener {
-            selectGallery()
+            //selectGallery()
+            AlertDialog.Builder(this).apply {
+                setTitle("사진촬영 및 갤러리 선택")
+                setPositiveButton("Gallery") { _, _ -> selectGallery() }
+                setNegativeButton("Photo") { _, _ -> selectPhoto() }
+            }.show()
         }
         // 프로필 변경 버튼
         binding.buttonProfile.setOnClickListener {
@@ -150,6 +181,41 @@ class UserActivity : AppCompatActivity() {
         cursor.close()
         return result
     }
+
+    //사진을 찍고 이미지를 파일로 저장해 주는 함수
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        //이미지 경로 지정
+        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(
+            "JPEG_${timeStamp}_",
+            ".jpg",
+            storageDir
+        ).apply {
+            //절대경로 변수에 저장
+            fileAbsolutePath = absolutePath
+        }
+    }
+
+    // 기본 사진앱 호출
+    private fun selectPhoto(){
+        val cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        val storagePermission =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+
+        if (cameraPermission == PackageManager.PERMISSION_DENIED || storagePermission == PackageManager.PERMISSION_DENIED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE), REQ_PERMISSION_CAMERA)
+        } else {
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+
+            photoResult.launch(intent)
+        }
+    }
+
+
 
     //갤러리 호출
     private fun selectGallery(){
