@@ -48,7 +48,19 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.USER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+
+        <activity
+            android:name=".PostingActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.POSTING"/>
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
