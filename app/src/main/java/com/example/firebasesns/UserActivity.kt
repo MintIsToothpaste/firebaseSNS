@@ -1,9 +1,7 @@
 package com.example.firebasesns
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.ContentUris
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -11,14 +9,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.text.TextUtils
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import androidx.lifecycle.ViewModelProvider
 import com.example.firebasesns.databinding.ActivityUserBinding
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.ktx.auth
@@ -33,7 +30,6 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 class UserActivity : AppCompatActivity() {
     lateinit var storage: FirebaseStorage
     lateinit var binding: ActivityUserBinding
@@ -42,6 +38,8 @@ class UserActivity : AppCompatActivity() {
     val docUserRef = db.collection("user").document("${Firebase.auth.currentUser?.uid}")
     val docPostRef = db.collection("post").document("${Firebase.auth.currentUser?.uid}")
     val REQUEST_IMAGE_CAPTURE = 1
+
+    private lateinit var viewModel: MyViewModel
 
     companion object {
         const val REQUEST_CODE = 1
@@ -56,7 +54,11 @@ class UserActivity : AppCompatActivity() {
     ){ result ->
         if(result.resultCode == RESULT_OK){
             val imageURI = result.data?.data
+
             imageURI?.let{
+
+                viewModel = ViewModelProvider(this)[MyViewModel::class.java]
+                viewModel.setPos(imageURI)
 
                 val imageFile = getRealPathFromURI(it)
                 val imageName = getRealPathFromNAME(it)
@@ -96,6 +98,8 @@ class UserActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityUserBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        viewModel = ViewModelProvider(this)[MyViewModel::class.java]
 
         Firebase.auth.currentUser ?: finish() // if not authenticated, finish this activity
 
@@ -139,6 +143,8 @@ class UserActivity : AppCompatActivity() {
         // 개시물수, 친구수 출력
         queryItem()
 
+
+
         // 업로드 버튼
         binding.buttonUpload.setOnClickListener {
             //selectGallery()
@@ -147,10 +153,24 @@ class UserActivity : AppCompatActivity() {
                 setPositiveButton("Gallery") { _, _ -> selectGallery() }
                 setNegativeButton("Photo") { _, _ -> selectPhoto() }
             }.show()
+
+            /*supportFragmentManager.commit { // this: FragmentTransaction
+                setReorderingAllowed(true)
+                replace(R.id.posting_fragment, PostingFragment::class.java, null)
+                addToBackStack(null)
+            }*/
+
         }
         // 프로필 변경 버튼
         binding.buttonProfile.setOnClickListener {
             selectGalleryProfile()
+        }
+
+        binding.test.setOnClickListener {
+            startActivity(
+                Intent(this, PostingActivity::class.java)
+            )
+            finish()
         }
 
 
