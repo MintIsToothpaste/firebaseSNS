@@ -55,10 +55,10 @@ class UserActivity : AppCompatActivity() {
         if(result.resultCode == RESULT_OK){
             val imageURI = result.data?.data
 
-            imageURI?.let{
+            //viewModel = ViewModelProvider(this)[MyViewModel::class.java]
+            viewModel.setPos(imageURI)
 
-                viewModel = ViewModelProvider(this)[MyViewModel::class.java]
-                viewModel.setPos(imageURI)
+            imageURI?.let{
 
                 val imageFile = getRealPathFromURI(it)
                 val imageName = getRealPathFromNAME(it)
@@ -165,6 +165,7 @@ class UserActivity : AppCompatActivity() {
         binding.buttonProfile.setOnClickListener {
             selectGalleryProfile()
         }
+
 
         binding.test.setOnClickListener {
             startActivity(
